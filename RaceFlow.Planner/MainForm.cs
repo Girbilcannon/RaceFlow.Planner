@@ -82,7 +82,10 @@ namespace RaceFlow.Planner
         private HudButton _btnSegmentOverride = null!;
         private HudButton _btnNodeOverride = null!;
         private HudButton _btnObsOutput = null!;
+        private HudButton _btnOther = null!;
+        private Form? _alternateRaceSystemWindow;
         private PlannerObsOutputServer? _obsOutputServer;
+        private GameCheckpointOverlayWindow? _gameOverlayWindow;
 
         private Point _dragStart;
         private bool _updatingProperties;
@@ -97,6 +100,7 @@ namespace RaceFlow.Planner
         private readonly List<Control> _finalPropertyControls = new();
         private readonly List<Control> _themeTuningPropertyControls = new();
         private readonly List<Control> _themeNodeTypeOverridePropertyControls = new();
+        private readonly List<Control> _splitWars2PropertyControls = new();
         private readonly HashSet<string> _collapsedThemeGroups = new(StringComparer.OrdinalIgnoreCase);
 
         private Label _lblNoSelection = null!;
@@ -140,6 +144,23 @@ namespace RaceFlow.Planner
         private NumericUpDown _numRadius = null!;
         private Label _lblAngle = null!;
         private NumericUpDown _numAngle = null!;
+        private Label _lblSplitWars2Header = null!;
+        private Label _lblSplitWars2TriggerType = null!;
+        private ComboBox _cmbSplitWars2TriggerType = null!;
+        private CheckBox _chkSplitWars2Start = null!;
+        private CheckBox _chkSplitWars2Goal = null!;
+        private Label _lblSplitWars2RadiusWidth = null!;
+        private NumericUpDown _numSplitWars2RadiusWidth = null!;
+        private Label _lblSplitWars2Density = null!;
+        private NumericUpDown _numSplitWars2Density = null!;
+        private Label _lblSplitWars2Center = null!;
+        private NumericUpDown _numSplitWars2Center = null!;
+        private Label _lblSplitWars2Up = null!;
+        private NumericUpDown _numSplitWars2Up = null!;
+        private Label _lblSplitWars2Down = null!;
+        private NumericUpDown _numSplitWars2Down = null!;
+        private Label _lblSplitWars2AngleArm = null!;
+        private NumericUpDown _numSplitWars2AngleArm = null!;
         private Label _lblThemeTuningHeader = null!;
         private Label _lblThemeTuningTarget = null!;
         private Label _lblThemeTuningScale = null!;
@@ -294,6 +315,9 @@ namespace RaceFlow.Planner
             _btnRecenter = MakeTitleButton("Recenter", 96);
             _btnRecenter.Click += (_, _) => _graph.CenterView();
 
+            _btnOther = MakeTitleButton("Other...", 90);
+            _btnOther.Click += (_, _) => OpenAlternateRaceSystemWindow();
+
             _toolbar.Controls.Add(_btnNewSegment);
             _toolbar.Controls.Add(_btnCheckpoint);
             _toolbar.Controls.Add(_btnPathCheckpoint);
@@ -302,6 +326,7 @@ namespace RaceFlow.Planner
             _toolbar.Controls.Add(_btnEndSegment);
             _toolbar.Controls.Add(_btnFinal);
             _toolbar.Controls.Add(_btnRecenter);
+            _toolbar.Controls.Add(_btnOther);
 
             Controls.Add(_toolbar);
         }
@@ -508,6 +533,74 @@ namespace RaceFlow.Planner
             _numAngle.ValueChanged += Angle_ValueChanged;
             y += 70;
 
+            _lblSplitWars2Header = MakeSectionHeader("Split Wars 2 Trigger", y);
+            y += 34;
+
+            _lblSplitWars2TriggerType = Theme.MakeLabel("Trigger Type", 18, y, true, true);
+            _cmbSplitWars2TriggerType = MakeComboBox(18, y + 22, 270);
+            _cmbSplitWars2TriggerType.Items.AddRange(new object[]
+            {
+                "Circle",
+                "Square / Plane",
+                "Map Change",
+                "Interact",
+                "Combat"
+            });
+            _cmbSplitWars2TriggerType.SelectedIndexChanged += SplitWars2TriggerType_SelectedIndexChanged;
+            y += 68;
+
+            _chkSplitWars2Start = new CheckBox
+            {
+                Text = "Start",
+                Left = 18,
+                Top = y,
+                Width = 126,
+                Height = 24,
+                ForeColor = Theme.Text,
+                BackColor = Color.Transparent
+            };
+            _chkSplitWars2Start.CheckedChanged += SplitWars2Start_CheckedChanged;
+
+            _chkSplitWars2Goal = new CheckBox
+            {
+                Text = "Goal",
+                Left = 162,
+                Top = y,
+                Width = 126,
+                Height = 24,
+                ForeColor = Theme.Text,
+                BackColor = Color.Transparent
+            };
+            _chkSplitWars2Goal.CheckedChanged += SplitWars2Goal_CheckedChanged;
+            y += 50;
+
+            _lblSplitWars2RadiusWidth = Theme.MakeLabel("Radius / Width", 18, y, true, true);
+            _numSplitWars2RadiusWidth = MakeDecimalBox(18, y + 22, 126, 0, 10000, 2);
+            _numSplitWars2RadiusWidth.ValueChanged += SplitWars2RadiusWidth_ValueChanged;
+
+            _lblSplitWars2Density = Theme.MakeLabel("Dot Density", 162, y, true, true);
+            _numSplitWars2Density = MakeIntegerBox(162, y + 22, 126, 0, 100000);
+            _numSplitWars2Density.ValueChanged += SplitWars2Density_ValueChanged;
+            y += 70;
+
+            _lblSplitWars2Center = Theme.MakeLabel("Center", 18, y, true, true);
+            _numSplitWars2Center = MakeDecimalBox(18, y + 22, 82, -90, 90, 2);
+            _numSplitWars2Center.ValueChanged += SplitWars2Center_ValueChanged;
+
+            _lblSplitWars2Up = Theme.MakeLabel("Up", 110, y, true, true);
+            _numSplitWars2Up = MakeDecimalBox(110, y + 22, 82, 0, 90, 2);
+            _numSplitWars2Up.ValueChanged += SplitWars2Up_ValueChanged;
+
+            _lblSplitWars2Down = Theme.MakeLabel("Down", 202, y, true, true);
+            _numSplitWars2Down = MakeDecimalBox(202, y + 22, 86, 0, 90, 2);
+            _numSplitWars2Down.ValueChanged += SplitWars2Down_ValueChanged;
+            y += 70;
+
+            _lblSplitWars2AngleArm = Theme.MakeLabel("Angle / Arm", 18, y, true, true);
+            _numSplitWars2AngleArm = MakeDecimalBox(18, y + 22, 126, -360, 360, 2);
+            _numSplitWars2AngleArm.ValueChanged += SplitWars2AngleArm_ValueChanged;
+            y += 70;
+
             _lblNotes = Theme.MakeLabel("Notes", 18, y, true, true);
             _txtNotes = new TextBox
             {
@@ -605,6 +698,17 @@ namespace RaceFlow.Planner
                 _lblFinishMode, _cmbFinishMode,
                 _lblLoopCount, _numLoopCount,
                 _lblLoopRequirement, _numLoopRequirement);
+
+            AddSplitWars2PropertyControls(
+                _lblSplitWars2Header,
+                _lblSplitWars2TriggerType, _cmbSplitWars2TriggerType,
+                _chkSplitWars2Start, _chkSplitWars2Goal,
+                _lblSplitWars2RadiusWidth, _numSplitWars2RadiusWidth,
+                _lblSplitWars2Density, _numSplitWars2Density,
+                _lblSplitWars2Center, _numSplitWars2Center,
+                _lblSplitWars2Up, _numSplitWars2Up,
+                _lblSplitWars2Down, _numSplitWars2Down,
+                _lblSplitWars2AngleArm, _numSplitWars2AngleArm);
 
             SetPropertyControlsVisible(false);
 
@@ -761,6 +865,21 @@ namespace RaceFlow.Planner
                 control.Visible = visible;
         }
 
+        private void AddSplitWars2PropertyControls(params Control[] controls)
+        {
+            foreach (Control control in controls)
+            {
+                _splitWars2PropertyControls.Add(control);
+                _rightPane.Controls.Add(control);
+            }
+        }
+
+        private void SetSplitWars2PropertyControlsVisible(bool visible)
+        {
+            foreach (Control control in _splitWars2PropertyControls)
+                control.Visible = visible;
+        }
+
         private void SetPropertyControlsVisible(bool visible)
         {
             _lblNoSelection.Visible = !visible;
@@ -781,6 +900,7 @@ namespace RaceFlow.Planner
                 control.Visible = false;
 
             SetThemeTuningPropertyControlsVisible(false);
+            SetSplitWars2PropertyControlsVisible(false);
         }
 
         private void SetSegmentPropertyControlsVisible(bool visible)
@@ -1053,13 +1173,26 @@ namespace RaceFlow.Planner
             {
                 TelemetrySnapshot? snapshot = PlannerTelemetryRuntime.GetSnapshot();
                 _graph?.SetLatestTelemetry(snapshot);
+                UpdateGameOverlay(snapshot);
                 UpdateTelemetryIndicator(snapshot, null);
             }
             catch (Exception ex)
             {
                 _graph?.SetLatestTelemetry(null);
+                UpdateGameOverlay(null);
                 UpdateTelemetryIndicator(null, ex.Message);
             }
+        }
+
+        private void UpdateGameOverlay(TelemetrySnapshot? snapshot)
+        {
+            if (_graph == null)
+                return;
+
+            if (_gameOverlayWindow == null || _gameOverlayWindow.IsDisposed)
+                _gameOverlayWindow = new GameCheckpointOverlayWindow();
+
+            _gameOverlayWindow.UpdateScene(_graph.Document, snapshot);
         }
 
         private void UpdateTelemetryIndicator(TelemetrySnapshot? snapshot, string? errorMessage)
@@ -1120,7 +1253,7 @@ namespace RaceFlow.Planner
                 _chkSnapToGrid == null || _chkShowGrid == null ||
                 _btnNewSegment == null || _btnCheckpoint == null || _btnSplit == null ||
                 _btnPathCheckpoint == null || _btnConverge == null || _btnEndSegment == null || _btnFinal == null ||
-                _btnRecenter == null || _btnTelemetryFlowTab == null || _btnThemeBuilderTab == null || _btnMinimize == null || _btnMaximize == null || _btnClose == null ||
+                _btnRecenter == null || _btnOther == null || _btnTelemetryFlowTab == null || _btnThemeBuilderTab == null || _btnMinimize == null || _btnMaximize == null || _btnClose == null ||
                 _btnNewTheme == null || _btnLoadTheme == null || _btnExportTheme == null || _btnImportIcons == null ||
                 _btnNodeTypeOverride == null || _btnSegmentOverride == null || _btnNodeOverride == null || _btnObsOutput == null ||
                 _pnlTelemetryLight == null || _lblTelemetryStatus == null)
@@ -1244,6 +1377,8 @@ namespace RaceFlow.Planner
                 _chkSnapToGrid.Top = 32;
                 _chkShowGrid.Top = 32;
                 int rightGroup = _toolbar.Width - 12;
+                LayoutToolbarRight(_btnOther, ref rightGroup);
+                rightGroup -= 10;
                 LayoutToolbarRight(_chkShowGrid, ref rightGroup);
                 LayoutToolbarRight(_chkSnapToGrid, ref rightGroup);
                 rightGroup -= 10;
@@ -1340,6 +1475,7 @@ namespace RaceFlow.Planner
             _btnEndSegment.Visible = !themeMode;
             _btnFinal.Visible = !themeMode;
             _btnRecenter.Visible = !themeMode;
+            _btnOther.Visible = !themeMode;
             _chkSnapToGrid.Visible = !themeMode;
             _chkShowGrid.Visible = !themeMode;
 
@@ -1518,6 +1654,7 @@ namespace RaceFlow.Planner
 
             bool isSegmentProperties = _segmentPropertyControls.Any(c => c.Visible);
             bool hasTelemetry = _lblTelemetryHeader.Visible;
+            bool hasSplitWars2 = _splitWars2PropertyControls.Any(c => c.Visible);
             bool hasDisable = _disablePropertyControls.Any(c => c.Visible);
             bool hasFinal = _finalPropertyControls.Any(c => c.Visible);
             bool showLoop = hasFinal && IsLoopFinishSelected();
@@ -1573,10 +1710,287 @@ namespace RaceFlow.Planner
                     _btnUpdatePosition.SetBounds(left, y, Math.Min(180, paneWidth), 32);
                     y += 50;
                 }
-                PlaceTwoColumnRow(_lblRadius, _numRadius, _lblAngle, _numAngle, left, rightCol, colWidth, ref y);
+                if (!hasSplitWars2)
+                    PlaceTwoColumnRow(_lblRadius, _numRadius, _lblAngle, _numAngle, left, rightCol, colWidth, ref y);
             }
 
+            if (hasSplitWars2)
+                PlaceSplitWars2Controls(left, rightCol, colWidth, paneWidth, ref y);
+
             PlaceFullRow(_lblNotes, _txtNotes, left, paneWidth, ref y, 130);
+        }
+
+
+        private void PlaceSplitWars2Controls(int left, int rightCol, int colWidth, int paneWidth, ref int y)
+        {
+            if (!_lblSplitWars2Header.Visible)
+                return;
+
+            PlaceSectionHeader(_lblSplitWars2Header, ref y, paneWidth);
+            PlaceFullRow(_lblSplitWars2TriggerType, _cmbSplitWars2TriggerType, left, paneWidth, ref y);
+
+            _chkSplitWars2Start.SetBounds(left, y, colWidth, 24);
+            _chkSplitWars2Goal.SetBounds(rightCol, y, colWidth, 24);
+            y += 44;
+
+            PlaceTwoColumnRow(_lblSplitWars2RadiusWidth, _numSplitWars2RadiusWidth, _lblSplitWars2Density, _numSplitWars2Density, left, rightCol, colWidth, ref y);
+
+            if (_lblSplitWars2Center.Visible || _lblSplitWars2Up.Visible || _lblSplitWars2Down.Visible)
+                PlaceThreeColumnRow(_lblSplitWars2Center, _numSplitWars2Center, _lblSplitWars2Up, _numSplitWars2Up, _lblSplitWars2Down, _numSplitWars2Down, left, paneWidth, ref y);
+
+            if (_lblSplitWars2AngleArm.Visible)
+                PlaceFullRow(_lblSplitWars2AngleArm, _numSplitWars2AngleArm, left, colWidth, ref y);
+        }
+
+        private static bool IsSplitWars2Node(GraphNode? node)
+        {
+            return string.Equals(
+                node?.Metadata?.AlternateSystem?.SystemKey,
+                AlternateRaceSystemKeys.SplitWars2,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsSplitWars2TriggerNode(GraphNode? node)
+        {
+            if (!IsSplitWars2Node(node))
+                return false;
+
+            RaceFlowNodeType nodeType = node!.Metadata.NodeType;
+            return nodeType != RaceFlowNodeType.Split && nodeType != RaceFlowNodeType.Converge;
+        }
+
+        private static SplitWars2NodeMetadata EnsureSplitWars2Metadata(GraphNode node)
+        {
+            node.Metadata.AlternateSystem ??= new AlternateRaceSystemMetadata
+            {
+                SystemKey = AlternateRaceSystemKeys.SplitWars2
+            };
+
+            node.Metadata.AlternateSystem.SystemKey = AlternateRaceSystemKeys.SplitWars2;
+            node.Metadata.AlternateSystem.SplitWars2 ??= new SplitWars2NodeMetadata();
+
+            return node.Metadata.AlternateSystem.SplitWars2;
+        }
+
+        private static int TriggerTypeFromComboIndex(int index)
+        {
+            return index switch
+            {
+                1 => SplitWars2TriggerTypes.Square,
+                2 => SplitWars2TriggerTypes.MapChange,
+                3 => SplitWars2TriggerTypes.Interact,
+                4 => SplitWars2TriggerTypes.Combat,
+                _ => SplitWars2TriggerTypes.Circle
+            };
+        }
+
+        private static int ComboIndexFromTriggerType(int triggerType)
+        {
+            return triggerType switch
+            {
+                SplitWars2TriggerTypes.Square => 1,
+                SplitWars2TriggerTypes.MapChange => 2,
+                SplitWars2TriggerTypes.Interact => 3,
+                SplitWars2TriggerTypes.Combat => 4,
+                _ => 0
+            };
+        }
+
+        private void LoadSplitWars2Properties(GraphNode node)
+        {
+            SplitWars2NodeMetadata sw2 = EnsureSplitWars2Metadata(node);
+
+            int triggerType = sw2.TriggerType;
+            _cmbSplitWars2TriggerType.SelectedIndex = ComboIndexFromTriggerType(triggerType);
+            _chkSplitWars2Start.Checked = sw2.IsStart;
+            _chkSplitWars2Start.Enabled = node.Metadata.SegmentOrder == 1;
+            _chkSplitWars2Goal.Checked = sw2.IsGoal;
+            _numSplitWars2RadiusWidth.Value = ClampDecimal((decimal)sw2.RadiusWidth, _numSplitWars2RadiusWidth.Minimum, _numSplitWars2RadiusWidth.Maximum);
+            _numSplitWars2Density.Value = ClampDecimal(sw2.DotDensity, _numSplitWars2Density.Minimum, _numSplitWars2Density.Maximum);
+            _numSplitWars2Center.Value = ClampDecimal((decimal)sw2.DotCenter, _numSplitWars2Center.Minimum, _numSplitWars2Center.Maximum);
+            _numSplitWars2Up.Value = ClampDecimal((decimal)sw2.DotUp, _numSplitWars2Up.Minimum, _numSplitWars2Up.Maximum);
+            _numSplitWars2Down.Value = ClampDecimal((decimal)sw2.DotDown, _numSplitWars2Down.Minimum, _numSplitWars2Down.Maximum);
+
+            decimal angleArmValue = triggerType == SplitWars2TriggerTypes.MapChange
+                ? sw2.HyperbolaC
+                : (decimal)sw2.PlaneAngle;
+            _numSplitWars2AngleArm.Value = ClampDecimal(angleArmValue, _numSplitWars2AngleArm.Minimum, _numSplitWars2AngleArm.Maximum);
+
+            ApplySplitWars2TriggerVisibility(triggerType);
+        }
+
+        private void ApplySplitWars2TriggerVisibility(int triggerType)
+        {
+            bool showCenterUpDown = triggerType != SplitWars2TriggerTypes.MapChange;
+            bool showAngleArm = triggerType == SplitWars2TriggerTypes.Square ||
+                                triggerType == SplitWars2TriggerTypes.MapChange;
+
+            _lblSplitWars2Center.Visible = showCenterUpDown;
+            _numSplitWars2Center.Visible = showCenterUpDown;
+            _lblSplitWars2Up.Visible = showCenterUpDown;
+            _numSplitWars2Up.Visible = showCenterUpDown;
+            _lblSplitWars2Down.Visible = showCenterUpDown;
+            _numSplitWars2Down.Visible = showCenterUpDown;
+
+            _lblSplitWars2AngleArm.Visible = showAngleArm;
+            _numSplitWars2AngleArm.Visible = showAngleArm;
+
+            _lblSplitWars2AngleArm.Text = triggerType == SplitWars2TriggerTypes.MapChange
+                ? "Hyperbola C"
+                : "Plane Angle";
+        }
+
+        private void RefreshSplitWars2CurrentPropertyLayout()
+        {
+            RelayoutPropertyControlsForCurrentSelection();
+            _graph.RefreshSelectedNode();
+        }
+
+        private void SplitWars2TriggerType_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (_updatingProperties || _currentNode == null || _cmbSplitWars2TriggerType.SelectedIndex < 0)
+                return;
+
+            int triggerType = TriggerTypeFromComboIndex(_cmbSplitWars2TriggerType.SelectedIndex);
+            _graph.SetSelectedMetadata(node =>
+            {
+                SplitWars2NodeMetadata sw2 = EnsureSplitWars2Metadata(node);
+                sw2.TriggerType = triggerType;
+                node.Metadata.Radius = sw2.RadiusWidth;
+                node.Metadata.Angle = triggerType == SplitWars2TriggerTypes.Square ? sw2.PlaneAngle : 360.0;
+
+                if (triggerType == SplitWars2TriggerTypes.MapChange)
+                {
+                    node.Title = "End Segment - Map Change";
+                    node.Metadata.RuntimeLabel = node.Title;
+                    node.NodeColor = Color.FromArgb(120, 58, 48);
+                }
+            });
+
+            ApplySplitWars2TriggerVisibility(triggerType);
+            RefreshSplitWars2CurrentPropertyLayout();
+        }
+
+        private void SplitWars2Start_CheckedChanged(object? sender, EventArgs e)
+        {
+            if (_updatingProperties || _currentNode == null)
+                return;
+
+            bool isStart = _chkSplitWars2Start.Checked && _currentNode.Metadata.SegmentOrder == 1;
+            if (_chkSplitWars2Start.Checked && !isStart)
+            {
+                _updatingProperties = true;
+                _chkSplitWars2Start.Checked = false;
+                _updatingProperties = false;
+                return;
+            }
+
+            _graph.SetSelectedMetadata(node => EnsureSplitWars2Metadata(node).IsStart = isStart);
+        }
+
+        private void SplitWars2Goal_CheckedChanged(object? sender, EventArgs e)
+        {
+            if (_updatingProperties || _currentNode == null)
+                return;
+
+            bool isGoal = _chkSplitWars2Goal.Checked;
+            _graph.SetSelectedMetadata(node =>
+            {
+                SplitWars2NodeMetadata sw2 = EnsureSplitWars2Metadata(node);
+                sw2.IsGoal = isGoal;
+                if (isGoal)
+                {
+                    sw2.TriggerType = SplitWars2TriggerTypes.Circle;
+                    node.Title = "Goal";
+                    node.Metadata.RuntimeLabel = "Goal";
+                    node.Metadata.DisplayName = "Goal";
+                    node.NodeColor = Color.FromArgb(135, 42, 82);
+                }
+            });
+
+            if (isGoal)
+            {
+                _updatingProperties = true;
+                _txtNodeName.Text = "Goal";
+                _txtDisplayName.Text = "Goal";
+                _cmbSplitWars2TriggerType.SelectedIndex = 0;
+                _updatingProperties = false;
+            }
+
+            RefreshSplitWars2CurrentPropertyLayout();
+        }
+
+        private void SplitWars2RadiusWidth_ValueChanged(object? sender, EventArgs e)
+        {
+            if (_updatingProperties || _currentNode == null)
+                return;
+
+            double value = (double)_numSplitWars2RadiusWidth.Value;
+            _graph.SetSelectedMetadata(node =>
+            {
+                SplitWars2NodeMetadata sw2 = EnsureSplitWars2Metadata(node);
+                sw2.RadiusWidth = value;
+                node.Metadata.Radius = value;
+            });
+        }
+
+        private void SplitWars2Density_ValueChanged(object? sender, EventArgs e)
+        {
+            if (_updatingProperties || _currentNode == null)
+                return;
+
+            int value = (int)_numSplitWars2Density.Value;
+            _graph.SetSelectedMetadata(node => EnsureSplitWars2Metadata(node).DotDensity = value);
+        }
+
+        private void SplitWars2Center_ValueChanged(object? sender, EventArgs e)
+        {
+            if (_updatingProperties || _currentNode == null)
+                return;
+
+            double value = (double)_numSplitWars2Center.Value;
+            _graph.SetSelectedMetadata(node => EnsureSplitWars2Metadata(node).DotCenter = value);
+        }
+
+        private void SplitWars2Up_ValueChanged(object? sender, EventArgs e)
+        {
+            if (_updatingProperties || _currentNode == null)
+                return;
+
+            double value = (double)_numSplitWars2Up.Value;
+            _graph.SetSelectedMetadata(node => EnsureSplitWars2Metadata(node).DotUp = value);
+        }
+
+        private void SplitWars2Down_ValueChanged(object? sender, EventArgs e)
+        {
+            if (_updatingProperties || _currentNode == null)
+                return;
+
+            double value = (double)_numSplitWars2Down.Value;
+            _graph.SetSelectedMetadata(node => EnsureSplitWars2Metadata(node).DotDown = value);
+        }
+
+        private void SplitWars2AngleArm_ValueChanged(object? sender, EventArgs e)
+        {
+            if (_updatingProperties || _currentNode == null)
+                return;
+
+            double value = (double)_numSplitWars2AngleArm.Value;
+            int triggerType = TriggerTypeFromComboIndex(_cmbSplitWars2TriggerType.SelectedIndex);
+
+            _graph.SetSelectedMetadata(node =>
+            {
+                SplitWars2NodeMetadata sw2 = EnsureSplitWars2Metadata(node);
+                if (triggerType == SplitWars2TriggerTypes.MapChange)
+                {
+                    sw2.HyperbolaC = (int)Math.Round(value);
+                }
+                else
+                {
+                    sw2.PlaneAngle = value;
+                    node.Metadata.Angle = value;
+                }
+            });
         }
 
         private bool IsLoopFinishSelected()
@@ -2737,13 +3151,23 @@ namespace RaceFlow.Planner
             RaceFlowNodeType nodeType = hasNode ? node!.Metadata.NodeType : RaceFlowNodeType.Checkpoint;
             bool isSingleStartNode = hasNode && selectedCount == 1 && nodeType == RaceFlowNodeType.Start;
             bool isSingleFinalNode = hasNode && selectedCount == 1 && nodeType == RaceFlowNodeType.Final;
+            bool isSplitWars2Node = hasNode && selectedCount == 1 && IsSplitWars2TriggerNode(node);
             bool canDisable = hasNode && selectedCount == 1 && CanDisableNode(nodeType);
 
             SetPropertyControlsVisible(hasNode);
             SetSegmentPropertyControlsVisible(false);
             SetStartPropertyControlsVisible(hasNode);
             SetDisablePropertyControlsVisible(canDisable);
-            SetFinalPropertyControlsVisible(isSingleFinalNode);
+            SetFinalPropertyControlsVisible(isSingleFinalNode && !isSplitWars2Node);
+            SetSplitWars2PropertyControlsVisible(isSplitWars2Node);
+
+            if (isSplitWars2Node)
+            {
+                _lblRadius.Visible = false;
+                _numRadius.Visible = false;
+                _lblAngle.Visible = false;
+                _numAngle.Visible = false;
+            }
 
             _lblStartHeader.Visible = isSingleStartNode;
             _lblTelemetryHeader.Text = isSingleStartNode ? "Start Node Telemetry" : "Node Telemetry";
@@ -2771,8 +3195,11 @@ namespace RaceFlow.Planner
                 if (isSingleStartNode)
                     LoadStartNodeProperties(node);
 
-                if (isSingleFinalNode)
+                if (isSingleFinalNode && !isSplitWars2Node)
                     LoadFinalNodeProperties(node);
+
+                if (isSplitWars2Node)
+                    LoadSplitWars2Properties(node);
             }
 
             RelayoutPropertyControlsForCurrentSelection();
@@ -2811,6 +3238,24 @@ namespace RaceFlow.Planner
             _cmbFinishMode.SelectedIndex = -1;
             _numLoopCount.Value = 3;
             _numLoopRequirement.Value = 3;
+            if (_cmbSplitWars2TriggerType != null)
+                _cmbSplitWars2TriggerType.SelectedIndex = -1;
+            if (_chkSplitWars2Start != null)
+                _chkSplitWars2Start.Checked = false;
+            if (_chkSplitWars2Goal != null)
+                _chkSplitWars2Goal.Checked = false;
+            if (_numSplitWars2RadiusWidth != null)
+                _numSplitWars2RadiusWidth.Value = 10;
+            if (_numSplitWars2Density != null)
+                _numSplitWars2Density.Value = 200;
+            if (_numSplitWars2Center != null)
+                _numSplitWars2Center.Value = 0;
+            if (_numSplitWars2Up != null)
+                _numSplitWars2Up.Value = 10;
+            if (_numSplitWars2Down != null)
+                _numSplitWars2Down.Value = 0;
+            if (_numSplitWars2AngleArm != null)
+                _numSplitWars2AngleArm.Value = 0;
         }
 
         private void LoadNodeMetadataProperties(GraphNode node)
@@ -3925,6 +4370,157 @@ namespace RaceFlow.Planner
             return null;
         }
 
+        private void OpenAlternateRaceSystemWindow()
+        {
+            if (_alternateRaceSystemWindow != null && !_alternateRaceSystemWindow.IsDisposed)
+            {
+                _alternateRaceSystemWindow.Show();
+                _alternateRaceSystemWindow.BringToFront();
+                return;
+            }
+
+            var form = new Form
+            {
+                Text = "Other Race Systems",
+                StartPosition = FormStartPosition.Manual,
+                FormBorderStyle = FormBorderStyle.FixedToolWindow,
+                ClientSize = new Size(360, 430),
+                BackColor = Theme.CardBackAlt,
+                ForeColor = Theme.Text,
+                ShowInTaskbar = false
+            };
+
+            form.Location = new Point(Left + 80, Top + 120);
+            form.FormClosed += (_, _) => _alternateRaceSystemWindow = null;
+
+            var label = new Label
+            {
+                Text = "Alternate Race System",
+                Left = 16,
+                Top = 14,
+                Width = 320,
+                Height = 22,
+                ForeColor = Theme.Text,
+                Font = new Font("Segoe UI Semibold", 9.5f, FontStyle.Bold)
+            };
+
+            var combo = new ComboBox
+            {
+                Left = 16,
+                Top = 40,
+                Width = 320,
+                Height = 28,
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            combo.Items.Add("Split Wars 2");
+            combo.SelectedIndex = 0;
+
+            var hint = new Label
+            {
+                Text = "SW2 nodes save extra trigger data into this .planrf project. Split/Converge are kept for editing but skipped during SW2 export.",
+                Left = 16,
+                Top = 78,
+                Width = 320,
+                Height = 46,
+                ForeColor = Theme.MutedText,
+                BackColor = Color.Transparent
+            };
+
+            form.Controls.Add(label);
+            form.Controls.Add(combo);
+            form.Controls.Add(hint);
+
+            int x1 = 16;
+            int x2 = 184;
+            int y = 138;
+            int w = 152;
+            int h = 32;
+            int gap = 10;
+
+            Button AddButton(string text, int left, int top, Action action, bool accent = false)
+            {
+                var button = new Button
+                {
+                    Text = text,
+                    Left = left,
+                    Top = top,
+                    Width = w,
+                    Height = h,
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = accent ? Color.FromArgb(42, 150, 84) : Color.FromArgb(48, 55, 64),
+                    ForeColor = Color.White
+                };
+                button.FlatAppearance.BorderColor = accent ? Color.FromArgb(80, 190, 120) : Theme.Border;
+                button.Click += (_, _) => action();
+                form.Controls.Add(button);
+                return button;
+            }
+
+            AddButton("New Segment", x1, y, () => _graph.AddSplitWars2Node(SplitWars2TriggerTypes.Circle, RaceFlowNodeType.Start));
+            AddButton("Circle", x2, y, () => _graph.AddSplitWars2Node(SplitWars2TriggerTypes.Circle, RaceFlowNodeType.Checkpoint));
+            y += h + gap;
+
+            AddButton("Square / Plane", x1, y, () => _graph.AddSplitWars2Node(SplitWars2TriggerTypes.Square, RaceFlowNodeType.Checkpoint));
+            AddButton("Map Change", x2, y, () => _graph.AddSplitWars2Node(SplitWars2TriggerTypes.MapChange, RaceFlowNodeType.EndSegment));
+            y += h + gap;
+
+            AddButton("Interact", x1, y, () => _graph.AddSplitWars2Node(SplitWars2TriggerTypes.Interact, RaceFlowNodeType.Checkpoint));
+            AddButton("Combat", x2, y, () => _graph.AddSplitWars2Node(SplitWars2TriggerTypes.Combat, RaceFlowNodeType.Checkpoint));
+            y += h + gap;
+
+            AddButton("Split", x1, y, () => _graph.AddSplitWars2Node(SplitWars2TriggerTypes.Circle, RaceFlowNodeType.Split));
+            AddButton("Converge", x2, y, () => _graph.AddSplitWars2Node(SplitWars2TriggerTypes.Circle, RaceFlowNodeType.Converge));
+            y += h + gap;
+
+            AddButton("End Segment", x1, y, () => _graph.AddSplitWars2Node(SplitWars2TriggerTypes.Circle, RaceFlowNodeType.EndSegment));
+            AddButton("Goal/End", x2, y, () => _graph.AddSplitWars2GoalNode());
+            y += h + 18;
+
+            var exportButton = AddButton("Export to Split Wars 2", 16, y, ExportSplitWars2, accent: true);
+            exportButton.Width = 320;
+
+            _alternateRaceSystemWindow = form;
+            form.Show(this);
+        }
+
+        private void ExportSplitWars2()
+        {
+            if (_graph == null)
+                return;
+
+            using var dialog = new SaveFileDialog
+            {
+                Filter = "Split Wars 2 route (*.json)|*.json",
+                DefaultExt = "json",
+                AddExtension = true,
+                FileName = "split_wars_2_route.json"
+            };
+
+            if (dialog.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            try
+            {
+                int exported = SplitWars2Exporter.ExportToFile(_graph.Document, dialog.FileName);
+
+                MessageBox.Show(
+                    this,
+                    $"Split Wars 2 route exported successfully.\n\nCheckpoint triggers exported: {exported}",
+                    "Export Split Wars 2",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    this,
+                    "Split Wars 2 export failed:\n\n" + ex.Message,
+                    "Export Split Wars 2",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
         private void ExportProject()
         {
             string? exportType = PromptForExportType();
@@ -4134,6 +4730,10 @@ namespace RaceFlow.Planner
                 PlannerTelemetryRuntime.StopAsync().GetAwaiter().GetResult();
                 _obsOutputServer?.Stop();
                 _obsOutputServer = null;
+
+                if (_gameOverlayWindow != null && !_gameOverlayWindow.IsDisposed)
+                    _gameOverlayWindow.Close();
+                _gameOverlayWindow = null;
             }
             catch
             {

@@ -280,6 +280,144 @@ namespace RaceFlow.Planner.UI
             Invalidate();
         }
 
+        public void AddSplitWars2Node(int triggerType, RaceFlowNodeType requestedNodeType)
+        {
+            bool selectedSplitStartsNewPath =
+                _selectedNode?.Metadata?.NodeType == RaceFlowNodeType.Split;
+
+            bool selectedContinuesExistingPath =
+                _selectedNode != null &&
+                TryParsePathCheckpointTitle(_selectedNode.Title, out _, out _, out _);
+
+            bool isPathCheckpoint = requestedNodeType == RaceFlowNodeType.Checkpoint &&
+                                    (selectedSplitStartsNewPath || selectedContinuesExistingPath);
+
+            RaceFlowNodeType nodeType = requestedNodeType;
+            if (requestedNodeType != RaceFlowNodeType.Start &&
+                requestedNodeType != RaceFlowNodeType.Split &&
+                requestedNodeType != RaceFlowNodeType.Converge &&
+                requestedNodeType != RaceFlowNodeType.EndSegment &&
+                requestedNodeType != RaceFlowNodeType.Final)
+            {
+                nodeType = RaceFlowNodeType.Checkpoint;
+            }
+
+            GraphNode node = CreateRaceFlowNode(nodeType, isPathCheckpoint);
+            ApplySplitWars2Defaults(node, triggerType, requestedNodeType, isPathCheckpoint);
+
+            _document.Nodes.Add(node);
+
+            TryConnectSelectedNodeToNewNode(node);
+
+            _selectedConnection = null;
+            SetOnlySelectedNode(node);
+            Invalidate();
+        }
+
+        public void AddSplitWars2GoalNode()
+        {
+            GraphNode node = CreateRaceFlowNode(RaceFlowNodeType.Checkpoint, isPathCheckpoint: false);
+            ApplySplitWars2Defaults(node, SplitWars2TriggerTypes.Circle, RaceFlowNodeType.Checkpoint, isPathCheckpoint: false);
+
+            node.Title = "Goal";
+            node.Metadata.RuntimeLabel = "Goal";
+            node.Metadata.DisplayName = "Goal";
+            node.Metadata.IsEndOfRace = false;
+            node.Metadata.NodeType = RaceFlowNodeType.Checkpoint;
+            node.NodeColor = GetDefaultRaceFlowNodeColor(RaceFlowNodeType.Final, false);
+            node.Outputs.Clear();
+
+            if (node.Metadata.AlternateSystem?.SplitWars2 != null)
+            {
+                node.Metadata.AlternateSystem.SplitWars2.IsGoal = true;
+                node.Metadata.AlternateSystem.SplitWars2.TriggerType = SplitWars2TriggerTypes.Circle;
+            }
+
+            _document.Nodes.Add(node);
+
+            TryConnectSelectedNodeToNewNode(node);
+
+            _selectedConnection = null;
+            SetOnlySelectedNode(node);
+            EnsureSpareInput(node);
+            RefreshSocketFlags(node);
+            Invalidate();
+        }
+
+        private void ApplySplitWars2Defaults(GraphNode node, int triggerType, RaceFlowNodeType requestedNodeType, bool isPathCheckpoint)
+        {
+            node.Metadata.AlternateSystem = new AlternateRaceSystemMetadata
+            {
+                SystemKey = AlternateRaceSystemKeys.SplitWars2,
+                SplitWars2 = new SplitWars2NodeMetadata
+                {
+                    TriggerType = triggerType,
+                    DotCenter = 0.0,
+                    DotDensity = 200,
+                    DotDown = 0.0,
+                    DotUp = 10.0,
+                    HyperbolaC = triggerType == SplitWars2TriggerTypes.MapChange ? 16 : 12,
+                    IsGoal = requestedNodeType == RaceFlowNodeType.Final,
+                    IsStart = requestedNodeType == RaceFlowNodeType.Start && node.Metadata.SegmentOrder == 1,
+                    PlaneAngle = 0.0,
+                    RadiusWidth = requestedNodeType == RaceFlowNodeType.Start ? 10.0 : 10.0
+                }
+            };
+
+            node.Metadata.Radius = node.Metadata.AlternateSystem.SplitWars2.RadiusWidth;
+            node.Metadata.Angle = triggerType == SplitWars2TriggerTypes.Square ? 0.0 : 360.0;
+
+            if (requestedNodeType == RaceFlowNodeType.Start)
+            {
+                node.Metadata.DisplayName = node.Metadata.SegmentOrder == 1 ? "Checkpoint 1" : $"Checkpoint {GetNextCheckpointNumber()}";
+                return;
+            }
+
+            if (requestedNodeType == RaceFlowNodeType.EndSegment && triggerType == SplitWars2TriggerTypes.MapChange)
+            {
+                node.Title = "End Segment - Map Change";
+                node.Metadata.RuntimeLabel = node.Title;
+                node.Metadata.DisplayName = $"Checkpoint {GetNextCheckpointNumber()}";
+                node.NodeColor = GetDefaultRaceFlowNodeColor(RaceFlowNodeType.EndSegment, false);
+                return;
+            }
+
+            if (requestedNodeType == RaceFlowNodeType.EndSegment)
+            {
+                node.Metadata.DisplayName = $"Checkpoint {GetNextCheckpointNumber()}";
+                node.NodeColor = GetDefaultRaceFlowNodeColor(RaceFlowNodeType.EndSegment, false);
+                return;
+            }
+
+            if (requestedNodeType == RaceFlowNodeType.Final)
+            {
+                node.Metadata.DisplayName = $"Checkpoint {GetNextCheckpointNumber()}";
+                node.NodeColor = GetDefaultRaceFlowNodeColor(RaceFlowNodeType.Final, false);
+                return;
+            }
+
+            if (requestedNodeType == RaceFlowNodeType.Split || requestedNodeType == RaceFlowNodeType.Converge)
+            {
+                // Split/converge nodes are editor-only helpers for SW2 export.
+                // They stay in the .planrf graph but are intentionally skipped by the SW2 exporter.
+                node.Metadata.DisplayName = string.Empty;
+                return;
+            }
+
+            if (!isPathCheckpoint)
+            {
+                int checkpointNumber = GetNextCheckpointNumber();
+                node.Title = $"CP{checkpointNumber}";
+                node.Metadata.DisplayName = $"Checkpoint {checkpointNumber}";
+            }
+            else
+            {
+                node.Metadata.DisplayName = node.Title;
+            }
+
+            node.Metadata.RuntimeLabel = node.Title;
+        }
+
         private GraphNode CreateRaceFlowNode(RaceFlowNodeType nodeType, bool isPathCheckpoint)
         {
             Point position = GetNewRaceFlowNodePosition(nodeType, isPathCheckpoint);

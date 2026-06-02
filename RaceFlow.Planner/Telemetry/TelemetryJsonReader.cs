@@ -40,6 +40,30 @@ namespace RaceFlow.Planner.Telemetry
                 snapshot.Z = GetDouble(position, "z");
             }
 
+            if (root.TryGetProperty("cameraPosition", out JsonElement cameraPosition) && cameraPosition.ValueKind == JsonValueKind.Object)
+            {
+                snapshot.CameraX = GetDouble(cameraPosition, "x");
+                snapshot.CameraY = GetDouble(cameraPosition, "y");
+                snapshot.CameraZ = GetDouble(cameraPosition, "z");
+                snapshot.HasCameraData = true;
+            }
+
+            if (root.TryGetProperty("cameraFront", out JsonElement cameraFront) && cameraFront.ValueKind == JsonValueKind.Object)
+            {
+                snapshot.CameraFrontX = GetDouble(cameraFront, "x");
+                snapshot.CameraFrontY = GetDouble(cameraFront, "y");
+                snapshot.CameraFrontZ = GetDouble(cameraFront, "z");
+            }
+
+            if (root.TryGetProperty("cameraTop", out JsonElement cameraTop) && cameraTop.ValueKind == JsonValueKind.Object)
+            {
+                snapshot.CameraTopX = GetDouble(cameraTop, "x");
+                snapshot.CameraTopY = GetDouble(cameraTop, "y");
+                snapshot.CameraTopZ = GetDouble(cameraTop, "z");
+            }
+
+            snapshot.Fov = GetDouble(root, "fov");
+
             return snapshot;
         }
 
